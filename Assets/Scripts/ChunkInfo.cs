@@ -6,7 +6,7 @@ public class ChunkInfo : MonoBehaviour
 {
     public int CurrentLOD { get; private set; }
 
-    private float[,] maxQualityNoiseMap;
+    public Texture2D maxQualityNoiseMap;
 
     public Vector2Int gridCoordinates;
 
@@ -14,7 +14,7 @@ public class ChunkInfo : MonoBehaviour
 
     void Awake()
     {
-        maxQualityNoiseMap = new float[TerrainGenerationManager.Instance.VerticesAlongEdge, TerrainGenerationManager.Instance.VerticesAlongEdge];
+        maxQualityNoiseMap = new Texture2D(TerrainGenerationManager.Instance.VerticesAlongEdge, TerrainGenerationManager.Instance.VerticesAlongEdge);
         mesh = this.GetComponent<MeshFilter>();
         gridCoordinates = new Vector2Int(int.MaxValue, int.MaxValue);
     }

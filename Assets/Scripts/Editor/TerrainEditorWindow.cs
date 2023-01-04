@@ -7,6 +7,7 @@ using UnityEngine;
 public class TerrainEditorWindow : EditorWindow
 {
     public static readonly string CHUNK_EXPORT_PATH = "Assets/Resources/ChunkData.asset";
+    public static readonly string HEIGHTMAP_EXPORT_PATH = "Assets/Resources/ChunkMaps/Height/";
     public static int ChunkSize;
     public static int VerticesAlongEdge;
     public static int NoOfLODS;

@@ -64,10 +64,7 @@ public class TerrainGenerationManager : Singleton<TerrainGenerationManager>
                 if (chunkToCheck == null)
                 {
                     //If chunk doesn't exist yet, make it.
-                    GameObject newChunk = ChunkPoolManager.Instance.RequestChunk(new Vector3((iteratingChunkCoords.x * ChunkSize) - ChunkSize / 2, 0, (iteratingChunkCoords.y * ChunkSize) - ChunkSize / 2), iteratingChunkCoords);
-                    newChunk.GetComponent<ChunkInfo>().UpdateMeshLOD(ChunkLODMeshes[LODToUse], LODToUse);
-                    newChunk.GetComponent<MeshRenderer>().material = mat;
-                    newChunk.SetActive(true);
+                    InitializeNewChunk(iteratingChunkCoords, LODToUse);
                 } else
                 {
                     if(chunkToCheck.CurrentLOD != LODToUse)
@@ -79,6 +76,15 @@ public class TerrainGenerationManager : Singleton<TerrainGenerationManager>
             }
         }
     }
+
+    private void InitializeNewChunk(Vector2Int chunkCoords, int LODToUse)
+    {
+        GameObject newChunk = ChunkPoolManager.Instance.RequestChunk(new Vector3((chunkCoords.x * ChunkSize) - ChunkSize / 2, 0, (chunkCoords.y * ChunkSize) - ChunkSize / 2), chunkCoords);
+        newChunk.GetComponent<ChunkInfo>().UpdateMeshLOD(ChunkLODMeshes[LODToUse], LODToUse);
+        newChunk.GetComponent<MeshRenderer>().material = mat;
+        newChunk.SetActive(true);
+    }
+
     private int CalculateLODLevelForChunk(float distanceToPlayer)
     {
         float distPercent = Mathf.InverseLerp(0.0f, viewDist * ChunkSize, distanceToPlayer * ChunkSize);

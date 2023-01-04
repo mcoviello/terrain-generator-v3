@@ -305,7 +305,7 @@ MonoBehaviour:
   viewDist: 5
   ChunkLODData: {fileID: 11400000, guid: a4ff6f7936746c0498165fcbe4537c45, type: 2}
   player: {fileID: 963194225}
-  mat: {fileID: 2100000, guid: f7571ec52dac77244bab7d53bd3695af, type: 2}
+  mat: {fileID: 2100000, guid: 40f35ea0f6d0947458970ca892fa1460, type: 2}
   LODBias:
     serializedVersion: 2
     m_Curve:
@@ -659,7 +659,7 @@ Camera:
     width: 1
     height: 1
   near clip plane: 0.3
-  far clip plane: 1000
+  far clip plane: 5000
   field of view: 60
   orthographic: 0
   orthographic size: 5
