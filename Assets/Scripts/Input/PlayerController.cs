@@ -88,6 +88,7 @@ public class PlayerController : Singleton<PlayerController>
 
     private Vector2Int GetCurrentChunkGridPosition()
     {
+        if (!TerrainGenerationManager.Instance) { return Vector2Int.zero; }
         int chunkSize = TerrainGenerationManager.Instance.ChunkSize;
         Vector3 curWorldPos = this.transform.position;
 
