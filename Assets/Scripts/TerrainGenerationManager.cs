@@ -82,9 +82,9 @@ public class TerrainGenerationManager : Singleton<TerrainGenerationManager>
         GameObject newChunk = ChunkPoolManager.Instance.RequestChunk(new Vector3((chunkCoords.x * ChunkSize) - ChunkSize / 2, 0, (chunkCoords.y * ChunkSize) - ChunkSize / 2), chunkCoords);
         var newChunkInfo = newChunk.GetComponent<ChunkInfo>();
         newChunk.GetComponent<MeshRenderer>().material = mat;
+        newChunk.SetActive(true);
         newChunkInfo.RegenerateHeightMap();
         newChunkInfo.UpdateMeshLOD(ChunkLODMeshes[LODToUse], LODToUse);
-        newChunk.SetActive(true);
     }
 
     private int CalculateLODLevelForChunk(float distanceToPlayer)

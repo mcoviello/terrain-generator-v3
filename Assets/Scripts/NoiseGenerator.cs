@@ -19,7 +19,7 @@ public class NoiseGenerator : Singleton<NoiseGenerator>
     {
         UpdateNoiseValues();
         float chunkSize = TerrainGenerationManager.Instance.ChunkSize;
-        test.SetFloats("_ChunkCoords", (float)chunkCoords.x, (float)chunkCoords.y);
+        test.SetFloats("_ChunkCoords", chunkCoords.x, chunkCoords.y);
         test.SetFloat("_ChunkSize", TerrainGenerationManager.Instance.VerticesAlongEdge);
         test.SetTexture(0, "_ChunkHeightMap", heightMapToWrite);
         test.Dispatch(0, heightMapToWrite.width / 8, heightMapToWrite.height / 8, 1);

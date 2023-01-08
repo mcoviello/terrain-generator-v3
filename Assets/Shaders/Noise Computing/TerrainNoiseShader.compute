@@ -89,15 +89,15 @@ float Simplex01(float2 v){
 [numthreads(8, 8, 1)]
 void CSMain(uint3 id : SV_DispatchThreadID)
 {
-    float x = id.x / _ChunkSize;
-    float y = id.y / _ChunkSize;
+    float x = id.x / (float)_ChunkSize;
+    float y = id.y / (float)_ChunkSize;
     float noiseVal = 0.0;
     float maxAmp = 0;
 
-    float2 coords = _ChunkCoords + float2(x,y);
+    float2 coords = (_ChunkCoords + float2(x,y)) / _ChunkSize;
 
     for (int i = 0; i < _Octaves; i++) {
-        noiseVal += _Amplitude * Simplex01( _Frequency * (coords));
+        noiseVal += _Amplitude * RidgedNoise( _Frequency * (coords));
         maxAmp += _Amplitude;
 
         coords *= _Lacunarity;

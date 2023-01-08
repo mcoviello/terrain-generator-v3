@@ -153,7 +153,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   test: {fileID: 7200000, guid: e08557e70290b8449aa65cda7eea8bc8, type: 3}
-  Frequency: 1
+  Frequency: 10
   Amplitude: 1
   Lacunarity: 2
   Gain: 0.5
@@ -380,7 +380,7 @@ MonoBehaviour:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
-  ChunkSize: 16
+  ChunkSize: 256
   VerticesAlongEdge: 64
   NoOfLODs: 5
 --- !u!1 &705507993
@@ -506,7 +506,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d0a59b58b35ce884e9828699f7f445a0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  chunkPoolSize: 1000
+  chunkPoolSize: 100
   chunkPrefab: {fileID: 569134190843068145, guid: b836d4487a6242e46bc1e2a7c0a221fe, type: 3}
 --- !u!4 &717679647
 Transform:

@@ -32,6 +32,8 @@ public class ChunkMeshes : ScriptableObject
             genMesh.SetVertices(LODs[i].Vertices);
             genMesh.SetUVs(0, LODs[i].UVs);
             genMesh.SetIndices(LODs[i].Indices, MeshTopology.Triangles, 0);
+            //Makes heightmap vertex updates faster in the chunk info class
+            genMesh.MarkDynamic();
             meshes[i] = genMesh;
         }
 
