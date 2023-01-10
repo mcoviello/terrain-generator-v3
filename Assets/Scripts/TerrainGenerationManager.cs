@@ -79,7 +79,7 @@ public class TerrainGenerationManager : Singleton<TerrainGenerationManager>
 
     private void InitializeNewChunk(Vector2Int chunkCoords, int LODToUse)
     {
-        GameObject newChunk = ChunkPoolManager.Instance.RequestChunk(new Vector3((chunkCoords.x * ChunkSize) - ChunkSize / 2, 0, (chunkCoords.y * ChunkSize) - ChunkSize / 2), chunkCoords);
+        GameObject newChunk = ChunkPoolManager.Instance.RequestChunk(new Vector3(Mathf.Round((chunkCoords.x * ChunkSize) - ChunkSize / 2.0f), 0, Mathf.Round((chunkCoords.y * ChunkSize) - ChunkSize / 2.0f)), chunkCoords);
         var newChunkInfo = newChunk.GetComponent<ChunkInfo>();
         newChunk.GetComponent<MeshRenderer>().material = mat;
         newChunk.SetActive(true);

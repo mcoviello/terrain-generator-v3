@@ -157,7 +157,7 @@ MonoBehaviour:
   Amplitude: 1
   Lacunarity: 2
   Gain: 0.5
-  Octaves: 10
+  Octaves: 5
 --- !u!4 &147430671
 Transform:
   m_ObjectHideFlags: 0
@@ -380,7 +380,7 @@ MonoBehaviour:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
-  ChunkSize: 256
+  ChunkSize: 64
   VerticesAlongEdge: 64
   NoOfLODs: 5
 --- !u!1 &705507993
@@ -506,7 +506,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d0a59b58b35ce884e9828699f7f445a0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  chunkPoolSize: 100
+  chunkPoolSize: 1000
   chunkPrefab: {fileID: 569134190843068145, guid: b836d4487a6242e46bc1e2a7c0a221fe, type: 3}
 --- !u!4 &717679647
 Transform:
@@ -516,7 +516,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 717679645}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 615.9048, y: -601.74414, z: 3584.9111}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []

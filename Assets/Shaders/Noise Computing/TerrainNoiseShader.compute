@@ -3,8 +3,8 @@
 
 
 RWTexture2D<float4> _ChunkHeightMap;
-float2  _ChunkCoords;
-float  _ChunkSize;
+int2  _ChunkCoords;
+int  _ChunkSize;
 float   _Resolution;
 float   _Frequency;
 float   _Amplitude;
@@ -86,16 +86,42 @@ float Simplex01(float2 v){
     return (snoise(v) + 1) / 2.0;
 }
 
+inline float4 EncodeFloatRGBA(float v)
+{
+    uint vi = (v * (256.0f * 256.0f * 256.0f * 256.0f));
+    int ex = (vi / (256 * 256 * 256) % 256);
+    int ey = ((vi / (256 * 256)) % 256);
+    int ez = ((vi / (256)) % 256);
+    int ew = (vi % 256);
+    float4 e = float4(ex / 255.0f, ey / 255.0f, ez / 255.0f, ew / 255.0f);
+    return e;
+}
+
+inline float4 EncodeFloatRGBAUnity( float v )
+{
+    float4 kEncodeMul = float4(1.0, 255.0, 65025.0, 160581375.0);
+    float kEncodeBit = 1.0/255.0;
+    float4 enc = kEncodeMul * v;
+    enc = frac (enc);
+    enc -= enc.yzww * kEncodeBit;
+    return enc.argb;
+}
+
+float RoundToDP(float toRound, int dp){
+    int temp = pow(10, dp);
+    return round(toRound * temp) / temp;
+}
+
 [numthreads(8, 8, 1)]
 void CSMain(uint3 id : SV_DispatchThreadID)
 {
-    float x = id.x / (float)_ChunkSize;
-    float y = id.y / (float)_ChunkSize;
+    float x = (id.x) / (float)(_ChunkSize-1);
+    float y = (id.y) / (float)(_ChunkSize-1);
     float noiseVal = 0.0;
     float maxAmp = 0;
 
     float2 coords = (_ChunkCoords + float2(x,y)) / _ChunkSize;
-
+    
     for (int i = 0; i < _Octaves; i++) {
         noiseVal += _Amplitude * RidgedNoise( _Frequency * (coords));
         maxAmp += _Amplitude;
@@ -106,7 +132,7 @@ void CSMain(uint3 id : SV_DispatchThreadID)
 
     noiseVal /= maxAmp;
 
-    _ChunkHeightMap[id.xy] = float4(noiseVal, noiseVal, noiseVal, 1);
+    _ChunkHeightMap[id.xy] = EncodeFloatRGBAUnity(noiseVal);//float4(0.4f, 0.1f,0.2f,0.3f);
 }
 
 

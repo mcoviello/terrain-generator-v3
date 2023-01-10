@@ -14,22 +14,27 @@ public class ChunkInfo : MonoBehaviour
 
     private MeshFilter mesh;
 
-    private Texture2D reader;
+    public Texture2D reader;
+
+    private float[] heightMap;
 
     void Awake()
     {
         maxQualityNoiseMap = new RenderTexture(TerrainGenerationManager.Instance.VerticesAlongEdge, 
             TerrainGenerationManager.Instance.VerticesAlongEdge, 24, 
-            RenderTextureFormat.R16);
-        maxQualityNoiseMap.filterMode = FilterMode.Bilinear;
+            RenderTextureFormat.ARGB32);
+        maxQualityNoiseMap.filterMode = FilterMode.Point;
         maxQualityNoiseMap.useMipMap = false;
         maxQualityNoiseMap.enableRandomWrite = true;
+        maxQualityNoiseMap.wrapMode = TextureWrapMode.Clamp;
         maxQualityNoiseMap.Create();
 
-        reader = new Texture2D(maxQualityNoiseMap.width, maxQualityNoiseMap.height, TextureFormat.R16, false);
-        reader.alphaIsTransparency = false;
+        reader = new Texture2D(maxQualityNoiseMap.width, maxQualityNoiseMap.height, TextureFormat.ARGB32, false);
+        reader.alphaIsTransparency = true;
         reader.wrapMode = TextureWrapMode.Clamp;
-        reader.filterMode = FilterMode.Bilinear;
+        reader.filterMode = FilterMode.Point;
+
+        heightMap = new float[maxQualityNoiseMap.width * maxQualityNoiseMap.height];
 
         mesh = this.GetComponent<MeshFilter>();
         gridCoordinates = new Vector2Int(int.MaxValue, int.MaxValue);
@@ -56,14 +61,31 @@ public class ChunkInfo : MonoBehaviour
         GetHeightMapDataFromRenderTex(ReadBackHeightMapDataToTexture2D);
     }
 
+    float DecodeFloatRGBA(Color enc)
+    {
+        Vector4 kDecodeDot = new Vector4(1.0f, 1 / 255.0f, 1 / 65025.0f, 1 / 160581375.0f);
+        return Vector4.Dot(enc, kDecodeDot);
+    }
+
     private void ReadBackHeightMapDataToTexture2D(AsyncGPUReadbackRequest readBackHeightMap)
     {
         //When the heightmap data has been retrieved, write it into a texture.
-        reader.LoadRawTextureData(readBackHeightMap.GetData<ushort>());
+        reader.LoadRawTextureData(readBackHeightMap.GetData<uint>());
         reader.Apply();
+
+        UnpackColorsToFloats();
 
         //NOW update vertex heights
         AdjustMeshToMatchHeightmap();
+    }
+
+    private void UnpackColorsToFloats()
+    {
+        var colors = reader.GetPixels();
+
+        for (int i = 0; i < colors.Length; i++) {
+            heightMap[i] = DecodeFloatRGBA(colors[i]);
+        }
     }
 
     private void AdjustMeshToMatchHeightmap()
@@ -71,7 +93,8 @@ public class ChunkInfo : MonoBehaviour
         var verts = mesh.mesh.vertices;
         //Calculate chunk dimensions at current LOD
         float lodMul = 1 / (float)Mathf.Pow(2, CurrentLOD - 1);
-        int VerticesAlongEdgeForLOD = Mathf.RoundToInt(TerrainGenerationManager.Instance.VerticesAlongEdge * (lodMul));
+        int verticesAlongEdge = TerrainGenerationManager.Instance.VerticesAlongEdge;
+        int verticesAlongEdgeForLOD = Mathf.RoundToInt(verticesAlongEdge * (lodMul));
 
         //Debug draw noise texture
         this.GetComponent<MeshRenderer>().material.SetTexture("_MainTex", reader);
@@ -80,19 +103,20 @@ public class ChunkInfo : MonoBehaviour
         for (int i = 0; i < verts.Length; i++)
         {
             //Get the pixel at the place the vertex would be at
-            Get2DArrIndex(i, VerticesAlongEdgeForLOD, out int x, out int y);
-            //Calculate corresponding pixel on heightmap
-            float xPerc = x / (float)VerticesAlongEdgeForLOD;
-            float yPerc = y / (float)VerticesAlongEdgeForLOD;
-            float height = reader.GetPixel(Mathf.RoundToInt(xPerc * reader.width),
-                Mathf.RoundToInt(yPerc * reader.height)).r;
-            //Set the height
-            verts[i].y = height * height * 100;
+            Get2DArrIndex(i, verticesAlongEdgeForLOD, out int x, out int y);
+            float xPercentage = x / (float)(verticesAlongEdgeForLOD - 1);
+            float yPercentage = y / (float)(verticesAlongEdgeForLOD - 1);
+
+            int index = (Mathf.RoundToInt(yPercentage * (verticesAlongEdge-1)) * verticesAlongEdge)
+                + Mathf.RoundToInt(xPercentage * (verticesAlongEdge-1));
+            float height = heightMap[index];
+            verts[i].y = height * 100.0f;
         }
 
         mesh.mesh.vertices = verts;
         mesh.mesh.RecalculateNormals();
         mesh.mesh.RecalculateBounds();
+
     }
 
     public void GetHeightMapDataFromRenderTex(Action<AsyncGPUReadbackRequest> onRequestCompleteCallback)
