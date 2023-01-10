@@ -40,7 +40,7 @@ public class TerrainEditorWindow : EditorWindow
         VerticesAlongEdge = Mathf.Max(VerticesAlongEdge, (int)Mathf.Pow(2, NoOfLODS));
         GUILayout.Label("Chunk Generation Settings", EditorStyles.boldLabel);
         ChunkSize = EditorGUILayout.IntSlider("Chunk Size", ChunkSize, 2, 1024);
-        VerticesAlongEdge = EditorGUILayout.IntSlider("Vertices along Edge" ,VerticesAlongEdge, 2, 64);
+        VerticesAlongEdge = EditorGUILayout.IntSlider("Vertices along Edge" ,VerticesAlongEdge, 2, 256);
         NoOfLODS = EditorGUILayout.IntSlider("Number of LODs" ,NoOfLODS, 1, 5);
         if(GUILayout.Button("Generate Chunk Meshes"))
         {

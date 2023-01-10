@@ -13,12 +13,13 @@ public class ChunkGenerator : MonoBehaviour
         var VerticesAlongEdgeForLOD = Mathf.RoundToInt(VerticesAlongEdge * lodMul);
 
         float DistToMove = (float)ChunkSize / (float)(VerticesAlongEdgeForLOD - 1);
+        float UVDist = 1 / (float)(VerticesAlongEdgeForLOD - 1);
         for (int z = 0; z < VerticesAlongEdgeForLOD; z++)
         {
             for (int x = 0; x < VerticesAlongEdgeForLOD; x++)
             {
                 vertexPositions.Add(new Vector3(x * DistToMove, 0, z * DistToMove));
-                vertexUVs.Add(new Vector2(x, z));
+                vertexUVs.Add(new Vector2(x * UVDist, z * UVDist));
             }
         }
 
