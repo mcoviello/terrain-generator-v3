@@ -29,7 +29,7 @@ public class TerrainEditorWindow : EditorWindow
 
     private void OnEnable()
     {
-        currentPreviewLOD = 1;
+        currentPreviewLOD = 0;
     }
 
     private void OnGUI()
@@ -103,7 +103,7 @@ public class TerrainEditorWindow : EditorWindow
 
         previewVerts.Clear();
 
-        float lodMul = 1 / Mathf.Pow(2, currentPreviewLOD-1);
+        float lodMul = 1 / Mathf.Pow(2, currentPreviewLOD);
         int VerticesAlongEdgeForLOD = Mathf.RoundToInt(VerticesAlongEdge * lodMul);
 
         for (int z = 0; z < VerticesAlongEdgeForLOD; z++)
