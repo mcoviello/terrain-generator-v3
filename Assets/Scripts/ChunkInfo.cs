@@ -92,7 +92,7 @@ public class ChunkInfo : MonoBehaviour
     {
         var verts = mesh.mesh.vertices;
         //Calculate chunk dimensions at current LOD
-        float lodMul = 1 / (float)Mathf.Pow(2, CurrentLOD - 1);
+        float lodMul = 1 / (float)Mathf.Pow(2, CurrentLOD);
         int verticesAlongEdge = TerrainGenerationManager.Instance.VerticesAlongEdge;
         int verticesAlongEdgeForLOD = Mathf.RoundToInt(verticesAlongEdge * (lodMul));
 
