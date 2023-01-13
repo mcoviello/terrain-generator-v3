@@ -23,21 +23,20 @@ public class ChunkMeshes : ScriptableObject
         }
     }
 
-    public Mesh[] GetLODMeshes()
+    public ChunkMeshData[] GetLODMeshes()
     {
-        Mesh[] meshes = new Mesh[NoOfLODs];
+        ChunkMeshData[] data = new ChunkMeshData[NoOfLODs];
         for (int i = 0; i < NoOfLODs; i++)
         {
-            Mesh genMesh = new Mesh();
-            genMesh.SetVertices(LODs[i].Vertices);
-            genMesh.SetUVs(0, LODs[i].UVs);
-            genMesh.SetIndices(LODs[i].Indices, MeshTopology.Triangles, 0);
+            ChunkMeshData genMesh = new ChunkMeshData();
+            genMesh.vertices = LODs[i].Vertices.ToArray(); ;
+            genMesh.uvs = LODs[i].UVs.ToArray();
+            genMesh.indices = LODs[i].Indices;
             //Makes heightmap vertex updates faster in the chunk info class
-            genMesh.MarkDynamic();
-            meshes[i] = genMesh;
+            data[i] = genMesh;
         }
 
-        return meshes;
+        return data;
     }
 }
 
