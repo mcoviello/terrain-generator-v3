@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -9,7 +10,7 @@ public class ChunkGenerator : MonoBehaviour
     {
         var vertexPositions = new List<Vector3>();
         var vertexUVs = new List<Vector2>();
-        float lodMul = 1/Mathf.Pow(2, LOD-1);
+        float lodMul = TerrainGenerationManager.CalculateLODMultiplier(LOD);
         var VerticesAlongEdgeForLOD = Mathf.RoundToInt(VerticesAlongEdge * lodMul);
 
         float DistToMove = (float)ChunkSize / (float)(VerticesAlongEdgeForLOD - 1);

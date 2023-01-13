@@ -3,8 +3,16 @@ using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
 
+public struct ChunkMeshData
+{
+    public Vector3[] vertices;
+    public Vector2[] uvs;
+    public int[] indices;
+}
+
 public class TerrainGenerationManager : Singleton<TerrainGenerationManager>
 {
+
     [SerializeField] int viewDist;
     [SerializeField] public ChunkMeshes ChunkLODData;
     [SerializeField] GameObject player;
@@ -15,7 +23,7 @@ public class TerrainGenerationManager : Singleton<TerrainGenerationManager>
     [HideInInspector] public int VerticesAlongEdge;
     [HideInInspector] public int NoOfLODs;
 
-    private Mesh[] ChunkLODMeshes;
+    private ChunkMeshData[] ChunkLODMeshes;
 
     public void Awake()
     {
@@ -70,10 +78,22 @@ public class TerrainGenerationManager : Singleton<TerrainGenerationManager>
                     if(chunkToCheck.CurrentLOD != LODToUse)
                     {
                         //Needs an LOD Update.
-                        chunkToCheck.UpdateMeshLOD(ChunkLODMeshes[LODToUse], LODToUse);
+                        chunkToCheck.UpdateMeshLOD(LODToUse);
                     }
                 }
             }
+        }
+    }
+
+    public ChunkMeshData GetMeshDataForLOD(int LOD)
+    {
+        if(LOD > -1 && LOD < ChunkLODMeshes.Length)
+        {
+            return ChunkLODMeshes[LOD];
+        } else
+        {
+            Debug.LogError("Requested LOD is Invalid");
+            return new ChunkMeshData();
         }
     }
 
@@ -84,7 +104,7 @@ public class TerrainGenerationManager : Singleton<TerrainGenerationManager>
         newChunk.GetComponent<MeshRenderer>().material = mat;
         newChunk.SetActive(true);
         newChunkInfo.RegenerateHeightMap();
-        newChunkInfo.UpdateMeshLOD(ChunkLODMeshes[LODToUse], LODToUse);
+        newChunkInfo.UpdateMeshLOD(LODToUse);
     }
 
     private int CalculateLODLevelForChunk(float distanceToPlayer)
@@ -92,6 +112,11 @@ public class TerrainGenerationManager : Singleton<TerrainGenerationManager>
         float distPercent = Mathf.InverseLerp(0.0f, viewDist * ChunkSize, distanceToPlayer * ChunkSize);
         int LODToUse = Mathf.RoundToInt(LODBias.Evaluate(distPercent) * (NoOfLODs - 1));
         return LODToUse;
+    }
+
+    public static float CalculateLODMultiplier(int CurrentLOD)
+    {
+        return 1 / (float)Mathf.Pow(2, CurrentLOD);
     }
 
 }

@@ -381,7 +381,7 @@ MonoBehaviour:
     m_PostInfinity: 2
     m_RotationOrder: 4
   ChunkSize: 64
-  VerticesAlongEdge: 64
+  VerticesAlongEdge: 128
   NoOfLODs: 5
 --- !u!1 &705507993
 GameObject:
@@ -755,7 +755,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d0775488c23670148a2c76178600395c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  movementSpeed: 100
+  movementSpeed: 500
   sprintMultiplier: 2
   mouseSpeed: 2
 --- !u!1 &1511004181

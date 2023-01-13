@@ -11,6 +11,7 @@ public class ChunkPoolManager : Singleton<ChunkPoolManager>
     [SerializeField] private int chunkPoolSize;
     [SerializeField] private GameObject chunkPrefab;
     private List<GameObject> chunks;
+    private Dictionary<Vector2Int, GameObject> chunkCoords;
 
     CompareChunksDistToPlayer ChunkComparer;
 
@@ -20,6 +21,7 @@ public class ChunkPoolManager : Singleton<ChunkPoolManager>
         ChunkComparer = new();
         //Spawn Chunk Pool
         chunks = new List<GameObject>();
+        chunkCoords = new Dictionary<Vector2Int, GameObject>();
 
         for(int i = 0; i < chunkPoolSize; i++)
         {
@@ -37,6 +39,10 @@ public class ChunkPoolManager : Singleton<ChunkPoolManager>
     {
         GameObject objToReturn = chunks.Last();
         chunks.RemoveAt(chunks.Count - 1);
+
+        Vector2Int oldCoords = objToReturn.GetComponent<ChunkInfo>().gridCoordinates;
+        chunkCoords.Remove(oldCoords);
+
         ChunkInfo poolScript = objToReturn.GetComponent<ChunkInfo>();
 
         if (poolScript != null)
@@ -45,6 +51,7 @@ public class ChunkPoolManager : Singleton<ChunkPoolManager>
         }
 
         SortedAdd(objToReturn);
+        chunkCoords.Add(newGridPosition, objToReturn);
 
         return objToReturn;
     }
@@ -54,13 +61,8 @@ public class ChunkPoolManager : Singleton<ChunkPoolManager>
         //TODO: Could this be more efficient?
         //Could add map of chunks to positions... could fill up memory though.
         ChunkInfo temp;
-        foreach(GameObject g in chunks)
-        {
-            temp = g.GetComponent<ChunkInfo>();
-            if (temp.gridCoordinates == gridPos)
-            {
-                return temp;
-            }
+        if (chunkCoords.ContainsKey(gridPos)){
+            return chunkCoords[gridPos].GetComponent<ChunkInfo>();
         }
 
         return null;
