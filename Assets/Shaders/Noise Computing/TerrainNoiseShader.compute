@@ -107,11 +107,6 @@ inline float4 EncodeFloatRGBAUnity( float v )
     return enc.argb;
 }
 
-float RoundToDP(float toRound, int dp){
-    int temp = pow(10, dp);
-    return round(toRound * temp) / temp;
-}
-
 [numthreads(8, 8, 1)]
 void CSMain(uint3 id : SV_DispatchThreadID)
 {
@@ -120,7 +115,7 @@ void CSMain(uint3 id : SV_DispatchThreadID)
     float noiseVal = 0.0;
     float maxAmp = 0;
 
-    float2 coords = (_ChunkCoords + float2(x,y)) / _ChunkSize;
+    float2 coords = (_ChunkCoords + float2(x,y));
     
     for (int i = 0; i < _Octaves; i++) {
         noiseVal += _Amplitude * RidgedNoise( _Frequency * (coords));
@@ -132,7 +127,7 @@ void CSMain(uint3 id : SV_DispatchThreadID)
 
     noiseVal /= maxAmp;
 
-    _ChunkHeightMap[id.xy] = EncodeFloatRGBAUnity(noiseVal);//float4(0.4f, 0.1f,0.2f,0.3f);
+    _ChunkHeightMap[id.xy] = EncodeFloatRGBAUnity(noiseVal);
 }
 
 

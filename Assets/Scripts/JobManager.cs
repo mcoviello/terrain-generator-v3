@@ -11,19 +11,20 @@ public class JobManager : Singleton<JobManager>
     private void Awake()
     {
         jobs = new NativeList<JobHandle>(Allocator.Persistent);
+        jobs.Clear();
     }
     private void Update()
     {
-        JobHandle.CompleteAll(jobs);
+        if (!jobs.IsEmpty)
+        {
+            JobHandle.CompleteAll(jobs);
+        }
+
+        jobs.Clear();
     }
 
     public void ScheduleJobForCompletion(JobHandle j)
     {
         jobs.Add(j);
-    }
-
-    private void OnDestroy()
-    {
-        jobs.Dispose();
     }
 }

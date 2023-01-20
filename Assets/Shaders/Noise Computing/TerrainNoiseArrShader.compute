@@ -2,9 +2,9 @@
 #pragma kernel CSMain
 
 
-RWTexture2D<float4> _ChunkHeightMap;
-float2  _ChunkCoords;
-float  _ChunkSize;
+RWStructuredBuffer<float> _ChunkHeightMap;
+int2  _ChunkCoords;
+int  _ChunkSize;
 float   _Resolution;
 float   _Frequency;
 float   _Amplitude;
@@ -89,15 +89,15 @@ float Simplex01(float2 v){
 [numthreads(8, 8, 1)]
 void CSMain(uint3 id : SV_DispatchThreadID)
 {
-    float x = id.x / _ChunkSize;
-    float y = id.y / _ChunkSize;
+    float x = (id.x) / (float)(_ChunkSize-1);
+    float y = (id.y) / (float)(_ChunkSize-1);
     float noiseVal = 0.0;
     float maxAmp = 0;
 
-    float2 coords = _ChunkCoords + float2(x,y);
-
+    float2 coords = (_ChunkCoords + float2(x,y));
+    
     for (int i = 0; i < _Octaves; i++) {
-        noiseVal += _Amplitude * Simplex01( _Frequency * (coords));
+        noiseVal += _Amplitude * Simplex01(_Frequency * (coords));
         maxAmp += _Amplitude;
 
         coords *= _Lacunarity;
@@ -106,7 +106,7 @@ void CSMain(uint3 id : SV_DispatchThreadID)
 
     noiseVal /= maxAmp;
 
-    _ChunkHeightMap[id.xy] = float4(noiseVal, noiseVal, noiseVal, 1);
+    _ChunkHeightMap[(id.y * _ChunkSize) + id.x] = noiseVal;
 }
 
 
