@@ -7,11 +7,22 @@ public class DebugUI : MonoBehaviour
 {
     [SerializeField] TMP_Text fps;
     [SerializeField] TMP_Text memory;
+    [SerializeField] private int NoOfFramesToAverage;
 
     private Color fpsColor;
 
-    private void Start()
+    private float[] fpsValues;
+    private int currentFPSIndex;
+    private float avgFPS;
+
+    private void Awake()
     {
+        fpsValues = new float[NoOfFramesToAverage];
+        for(int i = 0; i < NoOfFramesToAverage; i++) {
+            fpsValues[i] = -1f;
+        }
+
+        currentFPSIndex = 0;
     }
     void Update()
     {
@@ -19,15 +30,33 @@ public class DebugUI : MonoBehaviour
         UpdateMemory();
     }
 
+    void AverageFPS()
+    {
+        avgFPS = 0;
+        for(int i = 0; i < NoOfFramesToAverage; i++)
+        {
+            if (fpsValues[i] == -1)
+            {
+                continue;
+            }
+            avgFPS += fpsValues[i];
+        }
+
+        avgFPS /= NoOfFramesToAverage;
+        avgFPS = Mathf.Round(avgFPS);
+    }
     void UpdateFPS()
     {
-        float fpsVal = Mathf.RoundToInt(1 / Time.unscaledDeltaTime);
+        currentFPSIndex++;
+        currentFPSIndex = currentFPSIndex % (NoOfFramesToAverage);
+        fpsValues[currentFPSIndex] = 1 / Time.unscaledDeltaTime;
+        AverageFPS();
 
-        if (fpsVal > 60)
+        if (avgFPS > 60)
         {
             fpsColor = Color.green;
         }
-        else if (fpsVal > 30)
+        else if (avgFPS > 30)
         {
             fpsColor = Color.yellow;
         }
@@ -36,7 +65,7 @@ public class DebugUI : MonoBehaviour
             fpsColor = Color.red;
         }
 
-        fps.text = "FPS: " + fpsVal.ToString();
+        fps.text = "FPS: " + avgFPS;
         fps.color = fpsColor;
     }
 

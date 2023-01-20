@@ -8,71 +8,104 @@ using Unity.Collections;
 using Unity.Burst;
 using Unity.Mathematics;
 using UnityEditor;
+using System.Runtime.CompilerServices;
+using UnityEditor.UIElements;
 
+[RequireComponent(typeof(MeshFilter))]
+[RequireComponent(typeof(MeshRenderer))]
+[RequireComponent(typeof(MeshCollider))]
 public class ChunkInfo : MonoBehaviour
 {
     public int CurrentLOD { get; private set; }
 
-    public RenderTexture maxQualityNoiseMap;
-
     public Vector2Int gridCoordinates;
 
-    private MeshFilter mesh;
+    private MeshFilter chunkMesh;
 
-    public Texture2D reader;
+    private MeshRenderer chunkRenderer;
+
+    private MeshCollider chunkCollider;
+
+    public ComputeBuffer buffer;
 
     private float[] heightMap;
 
-    private bool currentlyAdjustingMesh;
-
-    private Vector4 FloatUnpackingVector = new Vector4(1.0f, 1 / 255.0f, 1 / 65025.0f, 1 / 160581375.0f);
-
+    private bool ColliderGenerated;
 
     void Awake()
     {
-        maxQualityNoiseMap = new RenderTexture(TerrainGenerationManager.Instance.VerticesAlongEdge, 
-            TerrainGenerationManager.Instance.VerticesAlongEdge, 24, 
-            RenderTextureFormat.ARGB32);
-        maxQualityNoiseMap.filterMode = FilterMode.Point;
-        maxQualityNoiseMap.useMipMap = false;
-        maxQualityNoiseMap.enableRandomWrite = true;
-        maxQualityNoiseMap.wrapMode = TextureWrapMode.Clamp;
-        maxQualityNoiseMap.Create();
+        buffer = new ComputeBuffer(TerrainGenerationManager.Instance.VerticesAlongEdge * TerrainGenerationManager.Instance.VerticesAlongEdge, 
+            sizeof(float), ComputeBufferType.Structured);
 
-        reader = new Texture2D(maxQualityNoiseMap.width, maxQualityNoiseMap.height, TextureFormat.ARGB32, false);
-        reader.alphaIsTransparency = true;
-        reader.wrapMode = TextureWrapMode.Clamp;
-        reader.filterMode = FilterMode.Point;
+        heightMap = new float[TerrainGenerationManager.Instance.VerticesAlongEdge * TerrainGenerationManager.Instance.VerticesAlongEdge];
 
-        heightMap = new float[maxQualityNoiseMap.width * maxQualityNoiseMap.height];
+        chunkMesh = GetComponent<MeshFilter>();
+        chunkMesh.mesh = new Mesh();
+        chunkMesh.mesh.indexFormat = IndexFormat.UInt32;
+        chunkMesh.mesh.MarkDynamic();
 
-        mesh = this.GetComponent<MeshFilter>();
-        mesh.mesh = new Mesh();
-        mesh.mesh.MarkDynamic();
-        gridCoordinates = new Vector2Int(int.MaxValue, int.MaxValue);
+        chunkRenderer = GetComponent<MeshRenderer>();
+
+        chunkCollider = GetComponent<MeshCollider>();
+        chunkCollider.sharedMesh = new Mesh();
+        chunkCollider.sharedMesh.indexFormat = IndexFormat.UInt32;
+        chunkCollider.sharedMesh.MarkDynamic();
+
+        gridCoordinates = Vector2Int.one * int.MaxValue;
     }
 
-    public void ReuseChunk(Vector3 newPos, Vector2Int newGridPos)
+    public void ReuseChunk(Vector3 newPos, Vector2Int newGridPos, int LOD)
     {
-        this.transform.position = newPos;
+        DisableChunk();
+        ColliderGenerated = false;
+        transform.position = newPos;
         gridCoordinates = newGridPos;
+        CurrentLOD = LOD;
+        RegenerateHeightMap();
     }
 
+    /// <summary>
+    /// Alert the chunk of an LOD change.
+    /// </summary>
+    /// <param name="newLOD"></param>
     public void UpdateMeshLOD(int newLOD)
     {
         CurrentLOD = newLOD;
-        ScheduleMeshHeightAdjustment(newLOD);
+        ScheduleMeshHeightAdjustment(chunkMesh.mesh, newLOD, true);
+        UpdateColliderBasedOnLOD(CurrentLOD);
+    }
+    /// <summary>
+    /// Disable all chunk interactivity but still allow for changes.
+    /// </summary>
+    public void DisableChunk()
+    {
+        chunkRenderer.enabled = false;
+        chunkCollider.enabled = false;
     }
 
-    #region Height Map Generation
+    /// <summary>
+    /// Re-enable the chunk interactivity.
+    /// </summary>
+    public void EnableChunk()
+    {
+        chunkRenderer.enabled = true;
+        chunkCollider.enabled = true;
+    }
+
+    public void SetMaterial(Material material)
+    {
+        chunkRenderer.material = material;
+    }
+
     public void RegenerateHeightMap()
     {
         //Request GPU to generate new heightmap
-        NoiseGenerator.Instance.GenerateNoiseForChunk(gridCoordinates, maxQualityNoiseMap);
-        //Request the GPU to retrieve the heightmap data from the GPU, and set callback
-        GetHeightMapDataFromRenderTex(ReadBackHeightMapDataToTexture2D);
+        NoiseGenerator.Instance.GenerateNoiseForChunk(gridCoordinates, buffer);
+        //Schedule a readback from the GPU to the Heightmap Array
+        ScheduleAsyncGPURequest(HandleAsyncGPURequest);
     }
-    public void GetHeightMapDataFromRenderTex(Action<AsyncGPUReadbackRequest> onRequestCompleteCallback)
+
+    private void ScheduleAsyncGPURequest(Action<AsyncGPUReadbackRequest> onRequestCompleteCallback)
     {
         IEnumerator RequestAsync(AsyncGPUReadbackRequest request, Action<AsyncGPUReadbackRequest> callbackAction)
         {
@@ -83,110 +116,110 @@ public class ChunkInfo : MonoBehaviour
             callbackAction(request);
         }
 
-        AsyncGPUReadbackRequest request = AsyncGPUReadback.Request(maxQualityNoiseMap);
+        AsyncGPUReadbackRequest request = AsyncGPUReadback.Request(buffer);
         StartCoroutine(RequestAsync(request, onRequestCompleteCallback));
     }
 
-    float DecodeFloatRGBA(Color enc)
+    private void HandleAsyncGPURequest(AsyncGPUReadbackRequest readBackHeightMap)
     {
-        return Vector4.Dot(enc, FloatUnpackingVector);
+        //When the heightmap data has been retrieved, write it into the array.
+        heightMap = readBackHeightMap.GetData<float>().ToArray();
+
+        ScheduleMeshHeightAdjustment(chunkMesh.mesh, CurrentLOD, true);
+
+        UpdateColliderBasedOnLOD(CurrentLOD);
     }
 
-    private void ReadBackHeightMapDataToTexture2D(AsyncGPUReadbackRequest readBackHeightMap)
+    void UpdateColliderBasedOnLOD(int LOD)
     {
-        //When the heightmap data has been retrieved, write it into a texture.
-        reader.LoadRawTextureData(readBackHeightMap.GetData<uint>());
-        reader.Apply();
-
-        //Debug draw noise texture
-        this.GetComponent<MeshRenderer>().material.SetTexture("_MainTex", reader);
-
-        UnpackColorsToFloats();
-
-        //NOW update vertex heights
-        //AdjustMeshToMatchHeightmap();
-        ScheduleMeshHeightAdjustment(CurrentLOD);
+        if (!ColliderGenerated && CurrentLOD < 1)
+        {
+            chunkCollider.enabled = true;
+            ScheduleMeshHeightAdjustment(chunkCollider.sharedMesh, 3, false);
+            ColliderGenerated = true;
+        } else
+        {
+            chunkCollider.enabled = false;
+        }
     }
-    #endregion
 
     #region Mesh Adjustment
-    public void ScheduleMeshHeightAdjustment(int newLOD)
+    private void ScheduleMeshHeightAdjustment(Mesh mesh, int newLOD, bool checkForLODChanges)
     {
         ChunkMeshData desiredLODData = TerrainGenerationManager.Instance.GetMeshDataForLOD(newLOD);
 
         AdjustMeshHeightJob job = new AdjustMeshHeightJob();
-        job.verts = new NativeArray<Vector3>(desiredLODData.vertices, Allocator.TempJob); ;
+        job.verts = new NativeArray<Vector3>(desiredLODData.vertices, Allocator.TempJob);
+        job.indices = new NativeArray<int>(desiredLODData.indices, Allocator.TempJob);
         job.heightMap = new NativeArray<float>(heightMap, Allocator.TempJob); ;
         job.verticesAlongEdge = TerrainGenerationManager.Instance.VerticesAlongEdge;
         job.CurrentLOD = newLOD;
-        job.result = new NativeArray<Vector3>(desiredLODData.vertices.Length, Allocator.TempJob); ;
+        job.maxHeight = TerrainGenerationManager.Instance.MaxHeight;
+        job.result = new NativeArray<Vector3>(desiredLODData.vertices.Length, Allocator.TempJob);
+        job.normals = new NativeArray<Vector3>(desiredLODData.vertices.Length, Allocator.TempJob);
 
         JobHandle handle = job.Schedule();
         JobManager.Instance.ScheduleJobForCompletion(handle);
-        StartCoroutine(HandleMeshAdjustmentJob(job, handle, newLOD, desiredLODData));
+        StartCoroutine(HandleMeshAdjustmentJob(mesh, job, handle, newLOD, desiredLODData, checkForLODChanges));
     }
 
-    private void UnpackColorsToFloats()
-    {
-        var colors = reader.GetPixels();
-
-        for (int i = 0; i < colors.Length; i++)
-        {
-            heightMap[i] = DecodeFloatRGBA(colors[i]);
-        }
-    }
-
-    private IEnumerator HandleMeshAdjustmentJob(AdjustMeshHeightJob job, JobHandle handle, int jobLOD, ChunkMeshData desiredLODData)
+    private IEnumerator HandleMeshAdjustmentJob(Mesh meshToUpdate, AdjustMeshHeightJob job, JobHandle handle, int jobLOD, ChunkMeshData desiredLODData, bool CheckForLODChange)
     {
         while(!handle.IsCompleted)
         {
           yield return null;
         }
 
+        //Seems to sometimes still not be complete?
         handle.Complete();
 
         //In case a different level of LOD has been requested since this began
-        if(CurrentLOD == jobLOD)
+        //Only if you want to check for changes, collider doesn't need to change for LODS.
+        if(CheckForLODChange ? (CurrentLOD == jobLOD): true)
         {
-            desiredLODData.vertices = job.result.ToArray();
-            SetMeshFromChunkMeshData(desiredLODData);
+            SetMeshFromChunkMeshData(meshToUpdate, desiredLODData, job);
+            EnableChunk();
         }
 
         job.verts.Dispose();
+        job.indices.Dispose();
         job.heightMap.Dispose();
         job.result.Dispose();
+        job.normals.Dispose();
     }
 
-    void SetMeshFromChunkMeshData(ChunkMeshData data) {
-        mesh.mesh.Clear(true);
-        mesh.mesh.SetVertices(data.vertices);
-        mesh.mesh.SetIndices(data.indices, MeshTopology.Triangles, 0);
-        mesh.mesh.SetUVs(0,data.uvs);
-        mesh.mesh.RecalculateBounds();
-        mesh.mesh.RecalculateNormals();
-        mesh.mesh.MarkModified();
+    private void SetMeshFromChunkMeshData(Mesh mesh, ChunkMeshData initialData ,AdjustMeshHeightJob job) {
+        mesh.Clear(false);
+        mesh.SetVertices(job.result);
+        mesh.SetIndices(initialData.indices, MeshTopology.Triangles, 0);
+        mesh.SetNormals(job.normals);
+        mesh.uv = initialData.uvs;
+
     }
 
     //Job to export array of Vector3s with modified heights.
     [BurstCompile]
-    public struct AdjustMeshHeightJob : IJob
+    private struct AdjustMeshHeightJob : IJob
     {
         public NativeArray<Vector3> verts;
+        public NativeArray<int> indices;
         public NativeArray<float> heightMap;
         public NativeArray<Vector3> result;
+        public NativeArray<Vector3> normals;
+
         public int verticesAlongEdge;
+        public float maxHeight;
         public int CurrentLOD;
+
         public void Execute()
         {
-            AdjustMeshToMatchHeightmap();
-        }
-        private void AdjustMeshToMatchHeightmap()
-        {
-            //Calculate chunk dimensions at current LOD
-            float lodMul = TerrainGenerationManager.CalculateLODMultiplier(CurrentLOD);
+            float lodMul = Util.CalculateLODMultiplier(CurrentLOD);
             int verticesAlongEdgeForLOD = Mathf.RoundToInt(verticesAlongEdge * (lodMul));
-
-
+            AdjustMeshToMatchHeightmap(verticesAlongEdgeForLOD);
+            CalculateAdjustedMeshNormals(verticesAlongEdgeForLOD);
+        }
+        private void AdjustMeshToMatchHeightmap(int verticesAlongEdgeForLOD)
+        {
             //Update all vertex heights to match heightmap
             for (int i = 0; i < verts.Length; i++)
             {
@@ -198,8 +231,37 @@ public class ChunkInfo : MonoBehaviour
                 int index = (Mathf.RoundToInt(yPercentage * (verticesAlongEdge - 1)) * verticesAlongEdge)
                     + Mathf.RoundToInt(xPercentage * (verticesAlongEdge - 1));
                 float height = heightMap[index];
-                result[i] = new Vector3( verts[i].x, height * 100.0f, verts[i].z);
+                result[i] = new Vector3( verts[i].x, height * maxHeight, verts[i].z);
             }
+        }
+
+        private void CalculateAdjustedMeshNormals(int verticesAlongEdgeForLOD)
+        {
+            for (int z = 0; z < verticesAlongEdgeForLOD-1; z++)
+            {
+                for (int x = 0; x < verticesAlongEdgeForLOD-1; x++)
+                {
+                    int vert = z * (verticesAlongEdgeForLOD) + x;
+                    int vert2 = vert + verticesAlongEdgeForLOD;
+                    int vert3 = vert + 1;
+                    int vert4 = vert + verticesAlongEdgeForLOD + 1;
+
+                    Vector3 triNorm = CalculateTriangleNormal(result[vert], result[vert2], result[vert3]);
+                    normals[vert] += triNorm;
+                    normals[vert2] += triNorm;
+                    normals[vert3] += triNorm;
+
+                    triNorm = CalculateTriangleNormal(result[vert2], result[vert4], result[vert3]);
+                    normals[vert2] += triNorm;
+                    normals[vert4] += triNorm;
+                    normals[vert3] += triNorm;
+                }
+            }
+        }
+
+        private Vector3 CalculateTriangleNormal(Vector3 a, Vector3 b, Vector3 c)
+        {
+            return Vector3.Cross(b - a, c - a).normalized;
         }
 
         private void Get2DArrIndex(int vert, int dimensions, out int x, out int y)
@@ -208,5 +270,10 @@ public class ChunkInfo : MonoBehaviour
             y = vert / dimensions;
         }
     }
-#endregion
+    #endregion
+
+    private void OnApplicationQuit()
+    {
+        buffer.Dispose();
+    }
 }

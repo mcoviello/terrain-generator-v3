@@ -15,14 +15,14 @@ public class NoiseGenerator : Singleton<NoiseGenerator>
     {
     }
 
-    public void GenerateNoiseForChunk(Vector2Int chunkCoords, RenderTexture heightMapToWrite)
+    public void GenerateNoiseForChunk(Vector2Int chunkCoords, ComputeBuffer heightMapToWrite)
     {
         UpdateNoiseValues();
         float chunkSize = TerrainGenerationManager.Instance.ChunkSize;
         test.SetInts("_ChunkCoords", chunkCoords.x, chunkCoords.y);
         test.SetInt("_ChunkSize", TerrainGenerationManager.Instance.VerticesAlongEdge);
-        test.SetTexture(0, "_ChunkHeightMap", heightMapToWrite);
-        test.Dispatch(0, heightMapToWrite.width / 8, heightMapToWrite.height / 8, 1);
+        test.SetBuffer(0, "_ChunkHeightMap", heightMapToWrite);
+        test.Dispatch(0, TerrainGenerationManager.Instance.VerticesAlongEdge / 8, TerrainGenerationManager.Instance.VerticesAlongEdge / 8, 1);
     }
 
     public void UpdateNoiseValues()

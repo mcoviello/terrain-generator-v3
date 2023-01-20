@@ -26,29 +26,36 @@ public class ChunkPoolManager : Singleton<ChunkPoolManager>
         for(int i = 0; i < chunkPoolSize; i++)
         {
             GameObject obj = Instantiate(chunkPrefab);
-            obj.SetActive(false);
             obj.transform.SetParent(transform);
+            //Terrain Layer
+            //Terrain Layer
+            obj.layer = 3;
 
-            if(i == 0) { chunks.Add(obj); }
-
-            SortedAdd(obj);
+            if (i == 0)
+            {
+                chunks.Add(obj);
+            }
+            else
+            {
+                SortedAdd(obj);
+            }
         }
     }
 
-    public GameObject RequestChunk(Vector3 newPosition, Vector2Int newGridPosition)
+    public GameObject RequestChunk(Vector3 newPosition, Vector2Int newGridPosition, int LOD)
     {
         GameObject objToReturn = chunks.Last();
         chunks.RemoveAt(chunks.Count - 1);
 
-        Vector2Int oldCoords = objToReturn.GetComponent<ChunkInfo>().gridCoordinates;
-        chunkCoords.Remove(oldCoords);
-
         ChunkInfo poolScript = objToReturn.GetComponent<ChunkInfo>();
 
-        if (poolScript != null)
+        Vector2Int oldCoords = poolScript.gridCoordinates;
+        if (chunkCoords.ContainsKey(oldCoords))
         {
-            poolScript.ReuseChunk(newPosition, newGridPosition);
+            chunkCoords.Remove(oldCoords);
         }
+
+        poolScript.ReuseChunk(newPosition, newGridPosition, LOD);
 
         SortedAdd(objToReturn);
         chunkCoords.Add(newGridPosition, objToReturn);
@@ -58,9 +65,6 @@ public class ChunkPoolManager : Singleton<ChunkPoolManager>
 
     public ChunkInfo GetChunkIfExists(Vector2Int gridPos)
     {
-        //TODO: Could this be more efficient?
-        //Could add map of chunks to positions... could fill up memory though.
-        ChunkInfo temp;
         if (chunkCoords.ContainsKey(gridPos)){
             return chunkCoords[gridPos].GetComponent<ChunkInfo>();
         }
@@ -73,7 +77,7 @@ public class ChunkPoolManager : Singleton<ChunkPoolManager>
         int binarySearchInd = chunks.BinarySearch(objToAdd, ChunkComparer);
         if(binarySearchInd < 0)
         {
-            binarySearchInd = ~binarySearchInd;
+            binarySearchInd = (chunks.Count) - ~binarySearchInd;
         }
         chunks.Insert(binarySearchInd, objToAdd);
     }
