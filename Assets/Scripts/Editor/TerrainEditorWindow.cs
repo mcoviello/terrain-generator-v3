@@ -14,7 +14,7 @@ public class TerrainEditorWindow : EditorWindow
 
     private static Color bgColor = new Color(0.1f, 0.1f, 0.1f, 1);
     private static Color mainGrid = Color.green;
-    private static Color subGrid = new Color(0, 1, 0, 0.2f);
+    private static Color subGrid = new Color(0, 1, 0, 0.5f);
 
     private int currentPreviewLOD;
     private List<Vector3> previewVerts;
@@ -29,7 +29,7 @@ public class TerrainEditorWindow : EditorWindow
 
     private void OnEnable()
     {
-        currentPreviewLOD = 0;
+        currentPreviewLOD = 1;
     }
 
     private void OnGUI()
@@ -103,7 +103,7 @@ public class TerrainEditorWindow : EditorWindow
 
         previewVerts.Clear();
 
-        float lodMul = 1 / Mathf.Pow(2, currentPreviewLOD);
+        float lodMul = 1 / Mathf.Pow(2, currentPreviewLOD - 1);
         int VerticesAlongEdgeForLOD = Mathf.RoundToInt(VerticesAlongEdge * lodMul);
 
         for (int z = 0; z < VerticesAlongEdgeForLOD; z++)
@@ -117,19 +117,25 @@ public class TerrainEditorWindow : EditorWindow
             }
         }
 
-        for (int z = 0; z < VerticesAlongEdgeForLOD - 1; z++)
+        //Draw the outline
+        GL.Color(mainGrid);
+        EditorDrawLine(previewVerts[0], previewVerts[VerticesAlongEdgeForLOD - 1]);
+        EditorDrawLine(previewVerts[VerticesAlongEdgeForLOD - 1], previewVerts[previewVerts.Count - 1]);
+        EditorDrawLine(previewVerts[previewVerts.Count - 1], previewVerts[previewVerts.Count - VerticesAlongEdgeForLOD]);
+        EditorDrawLine(previewVerts[previewVerts.Count - VerticesAlongEdgeForLOD], previewVerts[0]);
+
+        //Draw the vertical lines
+        for (int z = 1; z < VerticesAlongEdgeForLOD - 1; z++)
         {
-            for (int x = 0; x < VerticesAlongEdgeForLOD - 1; x++)
-            {
-                int startingVert = (z * VerticesAlongEdgeForLOD) + x;
-                GL.Color(mainGrid);
-                EditorDrawLine(previewVerts[startingVert], previewVerts[startingVert + 1]);
-                EditorDrawLine(previewVerts[startingVert + 1], previewVerts[startingVert + VerticesAlongEdgeForLOD + 1]);
-                EditorDrawLine(previewVerts[startingVert + VerticesAlongEdgeForLOD + 1], previewVerts[startingVert + VerticesAlongEdgeForLOD]);
-                EditorDrawLine(previewVerts[startingVert + VerticesAlongEdgeForLOD], previewVerts[startingVert]);
-                GL.Color(subGrid);
-                EditorDrawLine(previewVerts[startingVert], previewVerts[startingVert + VerticesAlongEdgeForLOD + 1]);
-            }
+            GL.Color(z % 2 == 0 ? mainGrid : subGrid);
+            EditorDrawLine(previewVerts[z], previewVerts[previewVerts.Count - VerticesAlongEdgeForLOD + z]);
+        }
+
+        //Draw the horizontal lines
+        for (int x = 1; x < VerticesAlongEdgeForLOD - 1; x++)
+        {
+            GL.Color(x % 2 == 0 ? mainGrid : subGrid);
+            EditorDrawLine(previewVerts[x * VerticesAlongEdgeForLOD], previewVerts[(x * VerticesAlongEdgeForLOD) + (VerticesAlongEdgeForLOD - 1)]);
         }
     }
 

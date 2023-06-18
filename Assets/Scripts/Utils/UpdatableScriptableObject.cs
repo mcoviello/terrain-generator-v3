@@ -5,15 +5,6 @@ using UnityEngine;
 public class UpdatableScriptableObject : ScriptableObject
 {
     public event System.Action OnValuesUpdated;
-    public bool AutoUpdate;
-
-    protected virtual void OnValidate()
-    {
-        if (AutoUpdate)
-        {
-            NotifyOfUpdatedValues();
-        }
-    }
 
     public void NotifyOfUpdatedValues()
     {

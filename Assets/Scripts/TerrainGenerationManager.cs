@@ -13,13 +13,17 @@ public struct ChunkMeshData
 
 public class TerrainGenerationManager : Singleton<TerrainGenerationManager>
 {
+    [Header("Components")]
+    [SerializeField] private GameObject Player;
+    [SerializeField] private Material Mat;
 
-    [SerializeField] private int viewDist;
-    [SerializeField] private GameObject player;
-    [SerializeField] private Material mat;
+    [Header("General Settings")]
+    [SerializeField] private int ViewDist;
+    [SerializeField] private int LODMaxDist;
     [SerializeField] private AnimationCurve LODBias;
     [SerializeField] public ChunkMeshes ChunkLODData;
     [SerializeField] public float MaxHeight = 100;
+    [SerializeField] public int HighestLODToHaveCollission = 1;
 
     [HideInInspector] public int ChunkSize;
     [HideInInspector] public int VerticesAlongEdge;
@@ -59,9 +63,9 @@ public class TerrainGenerationManager : Singleton<TerrainGenerationManager>
         Vector2Int iteratingChunkCoords = newPos;
 
         //Iterate over every chunk in the view distance
-        for(int x = -viewDist; x <= viewDist; x++)
+        for(int x = -ViewDist; x < ViewDist; x++)
         {
-            for (int z = -viewDist; z <= viewDist; z++)
+            for (int z = -ViewDist; z < ViewDist; z++)
             {
                 //Current chunk in render distance coords for checks
                 iteratingChunkCoords.x = newPos.x + x;
@@ -109,12 +113,12 @@ public class TerrainGenerationManager : Singleton<TerrainGenerationManager>
     private void InitializeNewChunk(Vector2Int chunkCoords, int LODToUse)
     {
         ChunkPoolManager.Instance.RequestChunk(new Vector3(Mathf.Round((chunkCoords.x * ChunkSize) - ChunkSize / 2.0f), 0, Mathf.Round((chunkCoords.y * ChunkSize) - ChunkSize / 2.0f)), chunkCoords, LODToUse);
-        ChunkPoolManager.Instance.GetChunkIfExists(chunkCoords).SetMaterial(mat);
+        ChunkPoolManager.Instance.GetChunkIfExists(chunkCoords).SetMaterial(Mat);
     }
 
     private int CalculateLODLevelForChunk(float distanceToPlayer)
     {
-        float distPercent = Mathf.InverseLerp(0.0f, viewDist * ChunkSize, distanceToPlayer * ChunkSize);
+        float distPercent = Mathf.InverseLerp(0.0f, LODMaxDist * ChunkSize, distanceToPlayer * ChunkSize);
         int LODToUse = Mathf.FloorToInt(LODBias.Evaluate(distPercent) * (NoOfLODs - 1));
         return LODToUse;
     }

@@ -72,7 +72,7 @@ public class ChunkInfo : MonoBehaviour
     {
         CurrentLOD = newLOD;
         ScheduleMeshHeightAdjustment(chunkMesh.mesh, newLOD, true);
-        UpdateColliderBasedOnLOD(CurrentLOD);
+        UpdateColliderBasedOnLOD();
     }
     /// <summary>
     /// Disable all chunk interactivity but still allow for changes.
@@ -89,7 +89,9 @@ public class ChunkInfo : MonoBehaviour
     public void EnableChunk()
     {
         chunkRenderer.enabled = true;
-        chunkCollider.enabled = true;
+
+        if(ColliderGenerated && CurrentLOD <= TerrainGenerationManager.Instance.HighestLODToHaveCollission)
+            chunkCollider.enabled = true;
     }
 
     public void SetMaterial(Material material)
@@ -127,16 +129,19 @@ public class ChunkInfo : MonoBehaviour
 
         ScheduleMeshHeightAdjustment(chunkMesh.mesh, CurrentLOD, true);
 
-        UpdateColliderBasedOnLOD(CurrentLOD);
+        UpdateColliderBasedOnLOD();
     }
 
-    void UpdateColliderBasedOnLOD(int LOD)
+    void UpdateColliderBasedOnLOD()
     {
-        if (!ColliderGenerated && CurrentLOD < 1)
+        if (CurrentLOD <= TerrainGenerationManager.Instance.HighestLODToHaveCollission)
         {
-            chunkCollider.enabled = true;
-            ScheduleMeshHeightAdjustment(chunkCollider.sharedMesh, 3, false);
-            ColliderGenerated = true;
+            if (!ColliderGenerated)
+            {
+                chunkCollider.enabled = true;
+                ScheduleMeshHeightAdjustment(chunkCollider.sharedMesh, 4, false, RefreshChunkCollider);
+                ColliderGenerated = true;
+            }
         } else
         {
             chunkCollider.enabled = false;
@@ -144,7 +149,7 @@ public class ChunkInfo : MonoBehaviour
     }
 
     #region Mesh Adjustment
-    private void ScheduleMeshHeightAdjustment(Mesh mesh, int newLOD, bool checkForLODChanges)
+    private void ScheduleMeshHeightAdjustment(Mesh mesh, int newLOD, bool checkForLODChanges, Action callbackAction = null)
     {
         ChunkMeshData desiredLODData = TerrainGenerationManager.Instance.GetMeshDataForLOD(newLOD);
 
@@ -160,10 +165,11 @@ public class ChunkInfo : MonoBehaviour
 
         JobHandle handle = job.Schedule();
         JobManager.Instance.ScheduleJobForCompletion(handle);
-        StartCoroutine(HandleMeshAdjustmentJob(mesh, job, handle, newLOD, desiredLODData, checkForLODChanges));
+        StartCoroutine(HandleMeshAdjustmentJob(mesh, job, handle, newLOD, desiredLODData, checkForLODChanges, callbackAction));
     }
 
-    private IEnumerator HandleMeshAdjustmentJob(Mesh meshToUpdate, AdjustMeshHeightJob job, JobHandle handle, int jobLOD, ChunkMeshData desiredLODData, bool CheckForLODChange)
+    private IEnumerator HandleMeshAdjustmentJob(Mesh meshToUpdate, AdjustMeshHeightJob job, JobHandle handle, int jobLOD, 
+        ChunkMeshData desiredLODData, bool CheckForLODChange, Action callbackAction)
     {
         while(!handle.IsCompleted)
         {
@@ -175,7 +181,7 @@ public class ChunkInfo : MonoBehaviour
 
         //In case a different level of LOD has been requested since this began
         //Only if you want to check for changes, collider doesn't need to change for LODS.
-        if(CheckForLODChange ? (CurrentLOD == jobLOD): true)
+        if(!CheckForLODChange || (CurrentLOD == jobLOD))
         {
             SetMeshFromChunkMeshData(meshToUpdate, desiredLODData, job);
             EnableChunk();
@@ -186,6 +192,13 @@ public class ChunkInfo : MonoBehaviour
         job.heightMap.Dispose();
         job.result.Dispose();
         job.normals.Dispose();
+
+        callbackAction?.Invoke();
+    }
+
+    private void RefreshChunkCollider()
+    {
+        chunkCollider.convex = false;
     }
 
     private void SetMeshFromChunkMeshData(Mesh mesh, ChunkMeshData initialData ,AdjustMeshHeightJob job) {
@@ -194,7 +207,6 @@ public class ChunkInfo : MonoBehaviour
         mesh.SetIndices(initialData.indices, MeshTopology.Triangles, 0);
         mesh.SetNormals(job.normals);
         mesh.uv = initialData.uvs;
-
     }
 
     //Job to export array of Vector3s with modified heights.

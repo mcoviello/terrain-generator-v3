@@ -28,7 +28,6 @@ public class ChunkPoolManager : Singleton<ChunkPoolManager>
             GameObject obj = Instantiate(chunkPrefab);
             obj.transform.SetParent(transform);
             //Terrain Layer
-            //Terrain Layer
             obj.layer = 3;
 
             if (i == 0)
@@ -95,8 +94,8 @@ class CompareChunksDistToPlayer : IComparer<GameObject>
     {
         //Sort chunks by distance to the player
         Vector3 playerPos = PlayerController.Instance.transform.position;
-        var distToChunk1 = Vector3.Distance(playerPos, x.transform.position);
-        var distToChunk2 = Vector3.Distance(playerPos, y.transform.position);
+        var distToChunk1 = (playerPos - x.transform.position).sqrMagnitude;
+        var distToChunk2 = (playerPos - y.transform.position).sqrMagnitude;
 
         return distToChunk1.CompareTo(distToChunk2);
     }

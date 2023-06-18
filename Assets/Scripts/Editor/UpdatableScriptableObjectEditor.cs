@@ -11,8 +11,8 @@ public class UpdatableScriptableObjectEditor : Editor
         base.OnInspectorGUI();
 
         UpdatableScriptableObject data = (UpdatableScriptableObject) target;
-
-        if (GUILayout.Button("Button"))
+        GUILayout.Space(10);
+        if (GUILayout.Button("Manually Update Values"))
         {
             data.NotifyOfUpdatedValues();
         }
